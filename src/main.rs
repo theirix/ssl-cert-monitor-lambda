@@ -93,9 +93,9 @@ async fn function_handler(event: LambdaEvent<Request>) -> Result<Response, Error
     let statuses: Vec<Status> = domains
         .into_iter()
         .map(|domain| match validator.validate_domain(&domain) {
-            Ok(status) => Status {
+            Ok(()) => Status {
                 domain: domain.to_string(),
-                valid: status,
+                valid: true,
                 error: String::new(),
             },
             Err(error) => Status {

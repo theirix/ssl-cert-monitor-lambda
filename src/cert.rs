@@ -35,7 +35,7 @@ impl Validator {
     ) -> Result<Vec<CertificateDer<'static>>, MonitorError> {
         let domain_name = domain.to_string().try_into().unwrap();
         let mut conn = rustls::ClientConnection::new(self.rc_config.clone(), domain_name)
-            .map_err(|err| MonitorError::Network(err.to_string()))?;
+            .map_err(MonitorError::Tls)?;
 
         let mut sock = TcpStream::connect(format!("{}:443", domain)).unwrap();
         let mut tls = rustls::Stream::new(&mut conn, &mut sock);
@@ -47,9 +47,8 @@ impl Validator {
             )
             .as_bytes(),
         )
-        .map_err(|err| MonitorError::Network(format!("Write err: {err}")))?;
-        tls.flush()
-            .map_err(|err| MonitorError::Network(format!("Flush err: {err}")))?;
+        .map_err(MonitorError::Network)?;
+        tls.flush().map_err(MonitorError::Network)?;
         let mut plaintext = Vec::new();
 
         match tls.read_to_end(&mut plaintext) {
@@ -57,7 +56,7 @@ impl Validator {
             Err(err) if err.kind() == std::io::ErrorKind::UnexpectedEof => Ok(()),
             Err(err) => Err(err),
         }
-        .map_err(|err| MonitorError::Network(format!("Read err: {err}")))?;
+        .map_err(MonitorError::Network)?;
 
         let certificates = tls
             .conn
@@ -71,7 +70,7 @@ impl Validator {
     fn validate_certificate(
         &self,
         certificate_blob: &CertificateDer<'static>,
-    ) -> Result<bool, MonitorError> {
+    ) -> Result<(), MonitorError> {
         let cert = X509Certificate::from_der(certificate_blob)
             .map_err(|err| MonitorError::Certificate(err.to_string()))?;
         info!(
@@ -83,30 +82,30 @@ impl Validator {
         info!("Checking against date {:?}", &required_expiry_date);
         if self.now < cert.validity_not_before() {
             Err(MonitorError::Certificate("Certificate is before".into()))
+        } else if required_expiry_date >= cert.validity_not_after() {
+            Err(MonitorError::Expired)
         } else if self.now > cert.validity_not_after() {
             Err(MonitorError::Certificate("Certificate is after".into()))
-        } else if required_expiry_date >= cert.validity_not_after() {
-            Ok(false)
         } else {
-            Ok(true)
+            info!("Valid");
+            Ok(())
         }
     }
 
     fn validate_certificates(
         &self,
         certificate_blobs: Vec<CertificateDer<'static>>,
-    ) -> Result<bool, MonitorError> {
+    ) -> Result<(), MonitorError> {
         if certificate_blobs.len() < 2 {
             return Err(MonitorError::Certificate("No certificates in chain".into()));
         }
-        let mut result = false;
         for cert in certificate_blobs.iter() {
-            result = result && self.validate_certificate(cert)?;
+            self.validate_certificate(cert)?;
         }
-        Ok(result)
+        Ok(())
     }
 
-    pub fn validate_domain(&self, domain: &str) -> Result<bool, MonitorError> {
+    pub fn validate_domain(&self, domain: &str) -> Result<(), MonitorError> {
         info!("Validating with {} days", self.max_expiration);
         let certificate_blobs = self.read_certificates(domain)?;
         self.validate_certificates(certificate_blobs)
@@ -145,7 +144,6 @@ mod tests {
             CertificateDer::from(Vec::<u8>::from(include_bytes!("./data/cert-2031.der")));
         let vres = validator(0).validate_certificate(&cert_der);
         assert!(vres.is_ok());
-        assert!(vres.unwrap());
     }
 
     #[test]
@@ -161,8 +159,7 @@ mod tests {
         let cert_der =
             CertificateDer::from(Vec::<u8>::from(include_bytes!("./data/cert-2031.der")));
         let vres = validator(3000).validate_certificate(&cert_der);
-        assert!(vres.is_ok());
-        assert!(!vres.unwrap());
+        assert!(matches!(vres, Err(MonitorError::Expired)));
     }
 
     #[test]
@@ -172,7 +169,6 @@ mod tests {
             CertificateDer::from(Vec::<u8>::from(include_bytes!("./data/cert-expired.der"))),
         ];
         let vres = validator(0).validate_certificates(certs_der);
-        assert!(vres.is_ok());
-        assert!(!vres.unwrap());
+        assert!(matches!(vres, Err(MonitorError::Expired)));
     }
 }
