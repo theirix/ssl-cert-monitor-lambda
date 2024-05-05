@@ -70,6 +70,7 @@ async fn parse_domains(s3_config_location: &str) -> Result<Vec<String>, Error> {
     let lines: Vec<String> = str::from_utf8(&content)?
         .split('\n')
         .map(String::from)
+        .filter(|s| !s.is_empty())
         .collect();
 
     Ok(lines)

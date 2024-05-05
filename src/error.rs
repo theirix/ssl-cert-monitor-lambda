@@ -10,6 +10,6 @@ pub enum MonitorError {
     Config(String),
     #[error("certificate expired")]
     Expired,
-    //#[error("unknown error")]
-    //Unknown,
+    #[error("general error: {0}")]
+    General(String),
 }

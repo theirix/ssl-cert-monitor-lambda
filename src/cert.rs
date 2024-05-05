@@ -33,11 +33,15 @@ impl Validator {
         &self,
         domain: &str,
     ) -> Result<Vec<CertificateDer<'static>>, MonitorError> {
-        let domain_name = domain.to_string().try_into().unwrap();
+        let domain_name = domain
+            .to_string()
+            .try_into()
+            .map_err(|_| MonitorError::General(format!("Wrong domain {}", domain)))?;
         let mut conn = rustls::ClientConnection::new(self.rc_config.clone(), domain_name)
             .map_err(MonitorError::Tls)?;
 
-        let mut sock = TcpStream::connect(format!("{}:443", domain)).unwrap();
+        let mut sock =
+            TcpStream::connect(format!("{}:443", domain)).map_err(MonitorError::Network)?;
         let mut tls = rustls::Stream::new(&mut conn, &mut sock);
 
         tls.write_all(
@@ -74,9 +78,10 @@ impl Validator {
         let cert = X509Certificate::from_der(certificate_blob)
             .map_err(|err| MonitorError::Certificate(err.to_string()))?;
         info!(
-            "Certificate: nb {:?}, na {:?}",
+            "Certificate: nb {:?}, na {:?}, subject {:?}",
             cert.validity_not_before(),
-            cert.validity_not_after()
+            cert.validity_not_after(),
+            cert.subject_name()
         );
         let required_expiry_date = self.now + chrono::Days::new(self.max_expiration);
         info!("Checking against date {:?}", &required_expiry_date);
