@@ -1,32 +1,15 @@
-[package]
-name = "ssl-cert-monitor-lambda"
-version = "0.1.0"
+[workspace]
+resolver = "2"
+members = [
+    "ssl-cert-monitor-lambda",
+    "ssl-cert-reporter-lambda",
+]
+
+[workspace.package]
 edition = "2021"
+license = "MIT"
+readme = "README.md"
+authors = ["theirix <theirix@gmail.com>"]
 
-# Starting in Rust 1.62 you can use `cargo add` to add dependencies 
-# to your project.
-#
-# If you're using an older Rust version,
-# download cargo-edit(https://github.com/killercup/cargo-edit#installation) 
-# to install the `add` subcommand.
-#
-# Running `cargo add DEPENDENCY_NAME` will
-# add the latest version of a dependency to the list,
-# and it will keep the alphabetic ordering for you.
-
-[dependencies]
-
-lambda_runtime = "0.11.1"
-serde = "1"
-thiserror = "1.0.59"
-tokio = { version = "1", features = ["macros"] }
-aws-config = ">= 1.2.0, < 2"
-aws-sdk-s3 = ">= 1.23.0, <2"
-url = "2.5.0"
-rustls = "0.23.5"
-webpki-roots = "0.26.1"
-x509-certificate = "0.23.1"
-tracing = { version = "0.1.40", features = ["log"] }
-test-log = { version = "0.2.15", features = ["trace"] }
-chrono = "0.4.38"
-
+[profile.dev]
+debug = 0

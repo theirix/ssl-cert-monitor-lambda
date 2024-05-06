@@ -1,0 +1,25 @@
+[package]
+name = "ssl-cert-monitor-lambda"
+version = "0.1.0"
+description = "AWS Lambda for monitoring SSL certificates"
+
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+
+lambda_runtime = "0.11.1"
+serde = "1"
+thiserror = "1.0.59"
+tokio = { version = "1", features = ["macros"] }
+aws-config = ">= 1.2.0, < 2"
+aws-sdk-s3 = ">= 1.23.0, <2"
+url = "2.5.0"
+rustls = "0.23.5"
+webpki-roots = "0.26.1"
+x509-certificate = "0.23.1"
+tracing = { version = "0.1.40", features = ["log"] }
+test-log = { version = "0.2.15", features = ["trace"] }
+chrono = "0.4.38"
+
