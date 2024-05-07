@@ -7,7 +7,7 @@ members = [
 
 [workspace.package]
 edition = "2021"
-license = "MIT"
+license = "BSD-3-Clause"
 readme = "README.md"
 authors = ["theirix <theirix@gmail.com>"]
 
