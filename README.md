@@ -35,6 +35,14 @@ or for failed checks:
 { "report": { "Invalid": "Found 1 issues.\nDomain expired.example (network error: invalid peer certificate: Expired)" } }
 ```
 
+## AWS Integration
+
+It's handy to use these lambdas together with AWS Step Functions workflow. There are two pre-configured SNS topics - for expiration message and for errors. The whole workflow is invoked daily with AWS EventBridge Scheduler.
+
+![stepfunctions](docs/stepfunctions.svg)
+
+
+
 ## License
 
 BSD 3-Clause
